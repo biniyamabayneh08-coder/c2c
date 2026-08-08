@@ -1,12 +1,12 @@
 :root {
     --primary: #4f46e5; 
-    --primary-hover: #4338ca;
-    --dark: #0f172a; 
+    --primary-hover: #3929ed;
+    --dark: #043543; 
     --light: #f8fafc; 
-    --gray: #64748b; 
+    --gray: #d1dceb; 
     --border: #e2e8f0;
     --success: #16a34a; 
-    --danger: #dc2626; 
+    --danger: #f90000; 
     --radius: 12px;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -24,7 +24,7 @@ body { background-color: #f1f5f9; color: #334155; }
 .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
 .btn-primary { background: var(--primary); color: white; }
 .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-.btn-success { background: var(--success); color: white; }
+.btn-success { background: var(--success); color: rgb(240, 240, 134); }
 .btn-danger { background: var(--danger); color: white; }
 .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
 
