@@ -10,7 +10,7 @@
 <body>
 
 <nav class="navbar">
-    <a href="index.php" class="logo"><i class="fa-solid fa-store"></i> MarketPro</a>
+    <a href="index.php" class="logo"><i class="fa-solid fa-store"></i> C2C Market</a>
     
     <form action="index.php" method="GET" class="search-bar">
         <input type="text" name="search" placeholder="Search items, parts, tools..." 
