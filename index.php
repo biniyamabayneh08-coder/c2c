@@ -5,13 +5,14 @@ require 'header.php';
 $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : '%';
 $cat_id = isset($_GET['category']) ? intval($_GET['category']) : 0;
 
-$sql = "SELECT p.*, c.name as cat_name FROM products p 
-        JOIN categories c ON p.category_id = c.id 
-        WHERE p.status = 'Available' AND (p.title LIKE ? OR p.description LIKE ?)";
+$sql = "SELECT p.*, c.name as cat_name FROM products p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.status = 'active' AND (p.name LIKE ? OR p.description LIKE ?)";
 
-if ($cat_id > 0) { $sql .= " AND p.category_id = ?"; }
+if ($cat_id > 0) { 
+    $sql .= " AND p.category_id = ?"; 
+}
 $sql .= " ORDER BY p.id DESC";
-
 $stmt = $conn->prepare($sql);
 if ($cat_id > 0) {
     $stmt->bind_param("ssi", $search, $search, $cat_id);
@@ -29,15 +30,17 @@ $categories = $conn->query("SELECT * FROM categories");
     </div>
 <?php endif; ?>
 
-<div class="categories">
-    <a href="index.php" class="cat-pill <?php echo $cat_id == 0 ? 'active' : ''; ?>">All Items</a>
-    <?php while($c = $categories->fetch_assoc()): ?>
-        <a href="index.php?category=<?php echo $c['id']; ?>" class="cat-pill <?php echo $cat_id == $c['id'] ? 'active' : ''; ?>">
-            <i class="fa-solid <?php echo e($c['icon']); ?>"></i> <?php echo e($c['name']); ?>
-        </a>
-    <?php endwhile; ?>
-</div>
 
+<?php 
+// Reset pointer or fetch categories safely
+$categories = $conn->query("SELECT * FROM categories");
+if ($categories && $categories->num_rows > 0) {
+    while ($cat = $categories->fetch_assoc()) {
+        $activeClass = ($cat_id == $cat['id']) ? 'active' : '';
+        echo '<a href="index.php?category=' . $cat['id'] . '" class="btn ' . $activeClass . '">' . htmlspecialchars($cat['name']) . '</a>';
+    }
+}
+?>
 <div class="grid">
     <?php if($products->num_rows == 0): ?>
         <h3>No items found matching your search.</h3>
