@@ -16,7 +16,6 @@ if (!$productId) {
 try {
     $conn->begin_transaction();
 
-    /* Get the product safely */
     $stmt = $conn->prepare(
         "SELECT id, seller_id, price, status
          FROM products
@@ -39,7 +38,6 @@ try {
         throw new Exception('This product is no longer available.');
     }
 
-    /* Stop duplicate pending purchases for this item */
     $stmt = $conn->prepare(
         "SELECT id FROM transactions
          WHERE product_id = ?
@@ -53,12 +51,10 @@ try {
         throw new Exception('This product already has a pending purchase.');
     }
 
-    /* Marketplace keeps 10%; change 0.10 later if needed */
     $totalAmount = (float) $product['price'];
     $commissionAmount = round($totalAmount * 0.10, 2);
     $sellerPayout = round($totalAmount - $commissionAmount, 2);
 
-    /* Create the marketplace transaction */
     $stmt = $conn->prepare(
         "INSERT INTO transactions
         (product_id, buyer_id, seller_id, total_amount, commission_amount, seller_payout, payment_status)
@@ -77,7 +73,6 @@ try {
 
     $transactionId = $conn->insert_id;
 
-    /* Create a payment record */
     $paymentReference = 'PAY-' . $transactionId . '-' . bin2hex(random_bytes(5));
 
     $stmt = $conn->prepare(
@@ -86,9 +81,6 @@ try {
         VALUES (?, ?, ?, 'manual', ?, 'ETB', 'pending')"
     );
    
-
-    // Remove the space in "iis d" before running:
-    // It must be exactly: "iisd"
     $stmt->bind_param("iisd", $transactionId, $buyerId, $paymentReference, $totalAmount);
     $stmt->execute();
 

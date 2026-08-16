@@ -1,9 +1,9 @@
 <?php
 require 'db.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $stmt = $conn->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO users (name, username, email, password_hash) VALUES (?, ?, ?, ?)");
     $hash = password_hash($_POST['password'], PASSWORD_BCRYPT);
-    $stmt->bind_param("sss", $_POST['name'], $_POST['email'], $hash);
+    $stmt->bind_param("ssss", $_POST['name'], $_POST['name'], $_POST['email'], $hash);
     if ($stmt->execute()) { header('Location: login.php'); exit(); }
 }
 require 'header.php';

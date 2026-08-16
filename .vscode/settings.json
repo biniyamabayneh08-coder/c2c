@@ -10,10 +10,9 @@
             "server": "localhost",
             "port": 3306,
             "driver": "MySQL",
-            "name": "MyLocalDB",
+            "name": "bini",
             "username": "root",
-            "database": "marketplace",
-            "password": ""
+            "database": "ab"
         }
     ]
 }

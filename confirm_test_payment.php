@@ -47,10 +47,9 @@ try {
 
         $stmt = $conn->prepare(
             "UPDATE transactions
-            SET payment_status = 'paid',
-         delivery_status = 'waiting_for_shipping'
-     WHERE id = ?"
-           
+             SET payment_status = 'paid',
+                 delivery_status = 'waiting_for_shipping'
+             WHERE id = ?"
         );
         $stmt->bind_param("i", $transactionId);
         $stmt->execute();
@@ -70,7 +69,6 @@ try {
     $stmt->bind_param("i", $payment['product_id']);
     $stmt->execute();
 
-    /* Create the seller's waiting payout only once */
     $stmt = $conn->prepare(
         "SELECT id FROM seller_payouts
          WHERE transaction_id = ?

@@ -7,7 +7,7 @@ $cat_id = isset($_GET['category']) ? intval($_GET['category']) : 0;
 
 $sql = "SELECT p.*, c.name as cat_name FROM products p
         JOIN categories c ON p.category_id = c.id
-        WHERE p.status = 'active' AND (p.name LIKE ? OR p.description LIKE ?)";
+        WHERE p.status = 'Available' AND (p.title LIKE ? OR p.description LIKE ?)";
 
 if ($cat_id > 0) { 
     $sql .= " AND p.category_id = ?"; 
@@ -30,9 +30,8 @@ $categories = $conn->query("SELECT * FROM categories");
     </div>
 <?php endif; ?>
 
-
+<div class="filter-buttons">
 <?php 
-// Reset pointer or fetch categories safely
 $categories = $conn->query("SELECT * FROM categories");
 if ($categories && $categories->num_rows > 0) {
     while ($cat = $categories->fetch_assoc()) {

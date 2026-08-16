@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->bind_param("s", $_POST['email']); $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
-    if ($user && password_verify($_POST['password'], $user['password'])) {
+    if ($user && password_verify($_POST['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = $user['id']; 
         $_SESSION['user_name'] = $user['name'];
         header('Location: index.php'); exit();
