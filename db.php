@@ -2,7 +2,7 @@
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 try {
-    $conn = new mysqli('localhost', 'root', '1234', 'marketplace');
+    $conn = new mysqli('dpg-da5eisjm8hqs73cdv5dg-a', 'bini_tcgq_user', 'xjFToVf2Az0J5qNKxms10lUaAYZbHPXs', 'bini_tcgq');
     $conn->set_charset("utf8mb4");
 } catch (Exception $e) {
     die("Database Connection Failed: " . $e->getMessage());
