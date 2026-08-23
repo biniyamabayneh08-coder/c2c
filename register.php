@@ -7,20 +7,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    // 1. Check if email already exists
-    $check_stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-    $check_stmt->execute([$email]);
-    
-    if ($check_stmt->fetch()) {
-        $error = "This email is already registered. Please use a different email or log in.";
-    } else {
-        // 2. Insert new user
+    try {
         $stmt = $conn->prepare("INSERT INTO users (name, username, email, password_hash) VALUES (?, ?, ?, ?)");
         $hash = password_hash($password, PASSWORD_BCRYPT);
         
         if ($stmt->execute([$name, $name, $email, $hash])) { 
             header('Location: login.php'); 
             exit(); 
+        }
+    } catch (PDOException $e) {
+        // Catch duplicate key error code (23505) gracefully
+        if ($e->getCode() == '23505') {
+            $error = "This email is already registered. Please use a different email or log in.";
+        } else {
+            $error = "Registration failed: " . $e->getMessage();
         }
     }
 }
