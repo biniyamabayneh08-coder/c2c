@@ -21,7 +21,6 @@ $sql = "SELECT p.*, c.name as cat_name FROM products p
         JOIN categories c ON p.category_id = c.id
         WHERE p.status = 'Available' AND (p.title LIKE ? OR p.description LIKE ?)";
 
-// Collect parameters in an array
 $params = [$search, $search];
 
 if ($cat_id > 0) {
@@ -31,15 +30,14 @@ if ($cat_id > 0) {
 $sql .= " ORDER BY " . $order_clause;
 
 $stmt = $conn->prepare($sql);
-// Execute passing the parameters array directly (no bind_param needed!)
 $stmt->execute($params);
+$products = $stmt->fetchAll(); // Returns an array of products
 
-// Fetch all matching products
-$products = $stmt->fetchAll();
-
-// 4. Fetch categories once to prevent duplicate database queries
+// 4. Fetch categories once
 $categories_stmt = $conn->query("SELECT * FROM categories");
-$categories = $categories_stmt->fetchAll();
+$categories = $categories_stmt->fetchAll(); // Returns an array of categories
+?>
+
 <?php if(isset($_GET['success'])): ?>
     <div style="background:var(--success, #28a745); color:white; padding:15px; border-radius:8px; margin-bottom:20px;">
         🎉 Purchase completed successfully!
@@ -75,28 +73,26 @@ $categories = $categories_stmt->fetchAll();
 <div class="filter-buttons" style="margin-bottom: 20px;">
     <a href="index.php<?php echo !empty($search_term) ? '?search='.urlencode($search_term) : ''; ?>" class="btn <?php echo ($cat_id == 0) ? 'active' : ''; ?>">All</a>
     <?php 
-    if ($categories_res && $categories_res->num_rows > 0) {
-        while ($cat = $categories_res->fetch_assoc()) {
-            $activeClass = ($cat_id == $cat['id']) ? 'active' : '';
-            $url = 'index.php?category=' . $cat['id'];
-            if (!empty($search_term)) {
-                $url .= '&search=' . urlencode($search_term);
-            }
-            if ($sort !== 'newest') {
-                $url .= '&sort=' . urlencode($sort);
-            }
-            echo '<a href="' . $url . '" class="btn ' . $activeClass . '">' . htmlspecialchars($cat['name']) . '</a> ';
+    foreach ($categories as $cat) {
+        $activeClass = ($cat_id == $cat['id']) ? 'active' : '';
+        $url = 'index.php?category=' . $cat['id'];
+        if (!empty($search_term)) {
+            $url .= '&search=' . urlencode($search_term);
         }
+        if ($sort !== 'newest') {
+            $url .= '&sort=' . urlencode($sort);
+        }
+        echo '<a href="' . $url . '" class="btn ' . $activeClass . '">' . htmlspecialchars($cat['name']) . '</a> ';
     }
     ?>
 </div>
 
 <!-- Product Display Grid -->
 <div class="grid">
-    <?php if($products->num_rows == 0): ?>
+    <?php if(empty($products)): ?>
         <h3>No items found matching your search.</h3>
     <?php else: ?>
-        <?php while($item = $products->fetch_assoc()): ?>
+        <?php foreach($products as $item): ?>
             <div class="card">
                 <?php $img = (!empty($item['image']) && file_exists('uploads/'.$item['image'])) ? 'uploads/'.$item['image'] : 'https://via.placeholder.com/400x300?text=No+Photo'; ?>
                 <img src="<?php echo $img; ?>" class="card-img" alt="Item">
@@ -115,7 +111,7 @@ $categories = $categories_stmt->fetchAll();
                     </div>
                 </div>
             </div>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
     <?php endif; ?>
 </div>
 
