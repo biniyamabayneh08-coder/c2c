@@ -16,29 +16,30 @@ if ($sort === 'price_asc') {
     $order_clause = "p.price DESC";
 }
 
-// 3. Prepare product SQL query
+// 3. Prepare product SQL query using PDO
 $sql = "SELECT p.*, c.name as cat_name FROM products p
         JOIN categories c ON p.category_id = c.id
         WHERE p.status = 'Available' AND (p.title LIKE ? OR p.description LIKE ?)";
 
+// Collect parameters in an array
+$params = [$search, $search];
+
 if ($cat_id > 0) {
     $sql .= " AND p.category_id = ?";
+    $params[] = $cat_id;
 }
 $sql .= " ORDER BY " . $order_clause;
 
 $stmt = $conn->prepare($sql);
-if ($cat_id > 0) {
-    $stmt->bind_param("ssi", $search, $search, $cat_id);
-} else {
-    $stmt->bind_param("ss", $search, $search);
-}
-$stmt->execute();
-$products = $stmt->get_result();
+// Execute passing the parameters array directly (no bind_param needed!)
+$stmt->execute($params);
+
+// Fetch all matching products
+$products = $stmt->fetchAll();
 
 // 4. Fetch categories once to prevent duplicate database queries
-$categories_res = $conn->query("SELECT * FROM categories");
-?>
-
+$categories_stmt = $conn->query("SELECT * FROM categories");
+$categories = $categories_stmt->fetchAll();
 <?php if(isset($_GET['success'])): ?>
     <div style="background:var(--success, #28a745); color:white; padding:15px; border-radius:8px; margin-bottom:20px;">
         🎉 Purchase completed successfully!
