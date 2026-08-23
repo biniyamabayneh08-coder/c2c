@@ -1,7 +1,14 @@
 <?php
+// Ensure session starts on every page automatically
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Render PostgreSQL Credentials
 $host = 'dpg-da5eisjm8hqs73cdv5dg-a';
 $db   = 'bini_tcgq';
 $user = 'bini_tcgq_user';
@@ -16,11 +23,9 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
-    // Check if tables exist, or run your setup schema if needed
-    // For safety, we can run table creation scripts or check a table existence:
+    // Automatically create tables if they don't exist
     $check = $conn->query("SELECT TO_REGCLASS('public.users')");
     if (!$check->fetchColumn()) {
-        // Run full schema creation if tables don't exist yet
         $schema = "
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -116,7 +121,6 @@ try {
         ";
         $conn->exec($schema);
 
-        // Insert default categories
         $conn->exec("INSERT INTO categories (name) VALUES ('Electronics'), ('Vehicles & Spare Parts'), ('Home & Office'), ('Fashion & Clothing') ON CONFLICT DO NOTHING");
     }
 
