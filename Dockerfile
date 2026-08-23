@@ -1,9 +1,10 @@
 FROM php:8.1-apache
 
-# Install MySQL extensions for PHP so your database connections work
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Install PostgreSQL dependencies and extension
+RUN apt-get update && apt-get install -y libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql
 
-# Copy all your project files into the web server directory
+# Copy all project files into the web server directory
 COPY . /var/www/html/
 
 # Expose port 80 for web traffic
