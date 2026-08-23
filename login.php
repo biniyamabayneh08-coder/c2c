@@ -20,10 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $email_value = $_POST['email'] ?? '';
         
+        // Prepare and execute using PDO syntax
         $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email_value); 
-        $stmt->execute();
-        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->execute([$email_value]); 
+        $user = $stmt->fetch(); // Fetches the user record as an associative array
         
         if ($user && password_verify($_POST['password'], $user['password_hash'])) {
             // Prevent session fixation attacks
@@ -46,7 +46,7 @@ require 'header.php';
     <h2 style="text-align:center; margin-bottom:20px;">Welcome Back</h2>
     
     <?php if($error): ?>
-        <p style="color:var(--danger); margin-bottom:15px;"><?php echo htmlspecialchars($error); ?></p>
+        <p style="color:var(--danger, #dc3545); margin-bottom:15px;"><?php echo htmlspecialchars($error); ?></p>
     <?php endif; ?>
     
     <form method="POST">
@@ -63,7 +63,7 @@ require 'header.php';
             <input type="password" name="password" class="form-control" required>
         </div>
 
-        <!-- Future-ready Remember Me Checkbox -->
+        <!-- Remember Me Checkbox -->
         <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
             <input type="checkbox" name="remember" id="remember">
             <label for="remember" style="margin-bottom: 0; font-weight: normal; cursor: pointer;">Remember me</label>
