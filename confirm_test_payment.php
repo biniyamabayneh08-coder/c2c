@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -14,7 +14,7 @@ if ($transactionId <= 0) {
 }
 
 try {
-    $conn->begin_transaction();
+    $conn->beginTransaction();
 
     $stmt = $conn->prepare(
         "SELECT
@@ -28,9 +28,8 @@ try {
          JOIN transactions t ON t.id = p.transaction_id
          WHERE t.id = ? AND t.buyer_id = ?"
     );
-    $stmt->bind_param("ii", $transactionId, $buyerId);
-    $stmt->execute();
-    $payment = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$transactionId, $buyerId]);
+    $payment = $stmt->fetch();
 
     if (!$payment) {
         throw new Exception('Payment not found.');
@@ -39,11 +38,10 @@ try {
     if ($payment['payment_status'] === 'pending') {
         $stmt = $conn->prepare(
             "UPDATE payments
-             SET status = 'paid', paid_at = NOW()
+             SET status = 'paid', paid_at = CURRENT_TIMESTAMP
              WHERE id = ?"
         );
-        $stmt->bind_param("i", $payment['payment_id']);
-        $stmt->execute();
+        $stmt->execute([$payment['payment_id']]);
 
         $stmt = $conn->prepare(
             "UPDATE transactions
@@ -51,8 +49,7 @@ try {
                  delivery_status = 'waiting_for_shipping'
              WHERE id = ?"
         );
-        $stmt->bind_param("i", $transactionId);
-        $stmt->execute();
+        $stmt->execute([$transactionId]);
 
         $message = 'Test payment successful.';
     } elseif ($payment['payment_status'] === 'paid') {
@@ -66,17 +63,15 @@ try {
          SET status = 'Sold'
          WHERE id = ?"
     );
-    $stmt->bind_param("i", $payment['product_id']);
-    $stmt->execute();
+    $stmt->execute([$payment['product_id']]);
 
     $stmt = $conn->prepare(
         "SELECT id FROM seller_payouts
          WHERE transaction_id = ?
          LIMIT 1"
     );
-    $stmt->bind_param("i", $transactionId);
-    $stmt->execute();
-    $existingPayout = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$transactionId]);
+    $existingPayout = $stmt->fetch();
 
     if (!$existingPayout) {
         $stmt = $conn->prepare(
@@ -84,20 +79,18 @@ try {
             (transaction_id, seller_id, amount, marketplace_fee, status)
             VALUES (?, ?, ?, ?, 'waiting')"
         );
-        $stmt->bind_param(
-            "iidd",
+        $stmt->execute([
             $transactionId,
             $payment['seller_id'],
             $payment['seller_payout'],
             $payment['commission_amount']
-        );
-        $stmt->execute();
+        ]);
     }
 
     $conn->commit();
 
 } catch (Exception $e) {
-    $conn->rollback();
+    $conn->rollBack();
     exit('Payment could not be confirmed: ' . e($e->getMessage()));
 }
 ?>

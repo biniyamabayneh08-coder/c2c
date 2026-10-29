@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 if (!isset($_GET['id'])) { header("Location: index.php"); exit(); }
 $product_id = intval($_GET['id']);
 
@@ -7,27 +7,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_SESSION['user_id'])) {
     $user_id = $_SESSION['user_id'];
     if (isset($_POST['interaction'])) {
         $action = $_POST['interaction'] == 'like' ? 'like' : 'dislike';
-        $conn->query("INSERT INTO likes (user_id, product_id, action) VALUES ($user_id, $product_id, '$action') ON DUPLICATE KEY UPDATE action='$action'");
+        $stmt = $conn->prepare('INSERT INTO likes (user_id, product_id, action) VALUES (?, ?, ?) ON CONFLICT(user_id, product_id) DO UPDATE SET action = excluded.action');
+        $stmt->execute([$user_id, $product_id, $action]);
     }
     if (isset($_POST['submit_comment'])) {
         $stmt = $conn->prepare("INSERT INTO comments (user_id, product_id, comment) VALUES (?, ?, ?)");
-        $stmt->bind_param("iis", $user_id, $product_id, $_POST['comment_text']);
-        $stmt->execute();
+        $stmt->execute([$user_id, $product_id, $_POST['comment_text']]);
     }
     header("Location: view_product.php?id=$product_id"); exit();
 }
 
 $stmt = $conn->prepare("SELECT p.*, u.name as seller_name, c.name as cat_name FROM products p JOIN users u ON p.seller_id = u.id JOIN categories c ON p.category_id = c.id WHERE p.id = ?");
-$stmt->bind_param("i", $product_id); $stmt->execute();
-$product = $stmt->get_result()->fetch_assoc();
+$stmt->execute([$product_id]);
+$product = $stmt->fetch();
 
 if(!$product) { header("Location: index.php"); exit(); }
 
-$likes = $conn->query("SELECT COUNT(*) as c FROM likes WHERE product_id=$product_id AND action='like'")->fetch_assoc()['c'];
-$dislikes = $conn->query("SELECT COUNT(*) as c FROM likes WHERE product_id=$product_id AND action='dislike'")->fetch_assoc()['c'];
+$stmt = $conn->prepare("SELECT COUNT(*) as c FROM likes WHERE product_id = ? AND action = 'like'");
+$stmt->execute([$product_id]);
+$likes = $stmt->fetch()['c'];
+$stmt = $conn->prepare("SELECT COUNT(*) as c FROM likes WHERE product_id = ? AND action = 'dislike'");
+$stmt->execute([$product_id]);
+$dislikes = $stmt->fetch()['c'];
 $comments = $conn->query("SELECT c.*, u.name FROM comments c JOIN users u ON c.user_id = u.id WHERE c.product_id=$product_id ORDER BY c.created_at DESC");
 
-require 'header.php';
+require_once 'header.php';
 ?>
 <div class="product-layout">
     <div>
@@ -85,13 +89,13 @@ require 'header.php';
     <?php endif; ?>
 
     <div>
-        <?php while($c = $comments->fetch_assoc()): ?>
+        <?php foreach($comments->fetchAll() as $c): ?>
             <div style="padding: 15px; background: var(--light); border-radius: 8px; margin-bottom: 10px;">
                 <strong><?php echo e($c['name']); ?></strong> 
                 <small style="color:var(--gray); float:right;"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></small>
                 <p style="margin-top:8px;"><?php echo e($c['comment']); ?></p>
             </div>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
     </div>
 </div>
 

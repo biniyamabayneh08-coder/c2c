@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit(); }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -20,13 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     $stmt = $conn->prepare("INSERT INTO products (seller_id, category_id, title, description, price, item_condition, delivery_type, payment_methods, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iissdssss", $seller_id, $cat_id, $title, $desc, $price, $condition, $delivery, $payments, $imageName);
-    
-    if ($stmt->execute()) { header('Location: index.php'); exit(); }
+    if ($stmt->execute([$seller_id, $cat_id, $title, $desc, $price, $condition, $delivery, $payments, $imageName])) { header('Location: index.php'); exit(); }
 }
 
 $categories = $conn->query("SELECT * FROM categories");
-require 'header.php';
+require_once 'header.php';
 ?>
 <div class="card-form">
     <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-box-open"></i> Post an Item</h2>
@@ -35,9 +33,9 @@ require 'header.php';
         <div class="form-group">
             <label>Category</label>
             <select name="category_id" class="form-control" required>
-                <?php while($c = $categories->fetch_assoc()): ?>
+                <?php foreach($categories->fetchAll() as $c): ?>
                     <option value="<?php echo $c['id']; ?>"><?php echo e($c['name']); ?></option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
 

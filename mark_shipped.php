@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -21,10 +21,9 @@ $stmt = $conn->prepare(
        AND payment_status = 'paid'
        AND delivery_status = 'waiting_for_shipping'"
 );
-$stmt->bind_param("ii", $transactionId, $sellerId);
-$stmt->execute();
+$stmt->execute([$transactionId, $sellerId]);
 
-if (!$stmt->get_result()->fetch_assoc()) {
+if (!$stmt->fetch()) {
     exit('You cannot mark this item as shipped.');
 }
 
@@ -33,8 +32,7 @@ $stmt = $conn->prepare(
      SET delivery_status = 'shipped'
      WHERE id = ?"
 );
-$stmt->bind_param("i", $transactionId);
-$stmt->execute();
+$stmt->execute([$transactionId]);
 
 echo '<h2>Item marked as shipped</h2>';
 echo '<p>The buyer can now confirm that they received it.</p>';

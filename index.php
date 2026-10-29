@@ -1,6 +1,6 @@
 <?php
-require 'db.php';
-require 'header.php';
+require_once 'db.php';
+require_once 'header.php';
 
 // 1. Sanitize & retrieve query parameters
 $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';

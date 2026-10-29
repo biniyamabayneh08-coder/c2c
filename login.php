@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require 'db.php';
+require_once 'db.php';
 $error = "";
 $email_value = "";
 
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
-require 'header.php';
+require_once 'header.php';
 ?>
 <div class="card-form">
     <h2 style="text-align:center; margin-bottom:20px;">Welcome Back</h2>

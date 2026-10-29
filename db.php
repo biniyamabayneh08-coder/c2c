@@ -8,27 +8,55 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Render PostgreSQL Credentials
-$host = 'dpg-da5eisjm8hqs73cdv5dg-a';
-$db   = 'bini_tcgq';
-$user = 'bini_tcgq_user';
-$pass = 'xjFToVf2Az0J5qNKxms10lUaAYZbHPXs';
-$port = '5432';
-
-$dsn = "pgsql:host=$host;port=$port;dbname=$db";
-
 try {
-    $conn = new PDO($dsn, $user, $pass, [
+    $databaseUrl = getenv('DATABASE_URL');
+    $host = getenv('C2C_DB_HOST');
+    $isPostgres = (bool) $databaseUrl || (bool) $host;
+
+    if ($databaseUrl) {
+        $parts = parse_url($databaseUrl);
+        if (!$parts || empty($parts['host']) || empty($parts['path']) || !isset($parts['user'], $parts['pass'])) {
+            throw new RuntimeException('DATABASE_URL is not a valid PostgreSQL connection URL.');
+        }
+
+        parse_str($parts['query'] ?? '', $query);
+        $sslmode = $query['sslmode'] ?? 'require';
+        $dsn = 'pgsql:host=' . $parts['host']
+            . ';port=' . ($parts['port'] ?? 5432)
+            . ';dbname=' . ltrim($parts['path'], '/')
+            . ';sslmode=' . $sslmode;
+        $dbUser = rawurldecode($parts['user']);
+        $dbPassword = rawurldecode($parts['pass']);
+    } elseif ($isPostgres) {
+        $dbName = getenv('C2C_DB_NAME');
+        $dbUser = getenv('C2C_DB_USER');
+        $dbPassword = getenv('C2C_DB_PASSWORD');
+        if (!$dbName || !$dbUser || !$dbPassword) {
+            throw new RuntimeException('Set C2C_DB_NAME, C2C_DB_USER, and C2C_DB_PASSWORD with C2C_DB_HOST.');
+        }
+        $sslmode = getenv('C2C_DB_SSLMODE') ?: 'require';
+        $dsn = 'pgsql:host=' . $host . ';port=' . (getenv('C2C_DB_PORT') ?: '5432')
+            . ';dbname=' . $dbName . ';sslmode=' . $sslmode;
+    } else {
+        $databasePath = getenv('C2C_DB_PATH') ?: __DIR__ . '/marketplace.sqlite';
+        $dsn = 'sqlite:' . $databasePath;
+        $dbUser = null;
+        $dbPassword = null;
+    }
+
+    $conn = new PDO($dsn, $dbUser, $dbPassword, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+    if (!$isPostgres) {
+        $conn->exec('PRAGMA foreign_keys = ON');
+    }
 
-    // Automatically create tables if they don't exist
-    $check = $conn->query("SELECT TO_REGCLASS('public.users')");
-    if (!$check->fetchColumn()) {
-        $schema = "
+    $idPrimaryKey = $isPostgres ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+
+    $schema = "
         CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             name VARCHAR(50) NOT NULL,
             username VARCHAR(50) NOT NULL,
             email VARCHAR(100) UNIQUE NOT NULL,
@@ -37,12 +65,12 @@ try {
         );
 
         CREATE TABLE IF NOT EXISTS categories (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             name VARCHAR(100) NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS products (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             seller_id INT NOT NULL,
             category_id INT NOT NULL,
             title VARCHAR(150) NOT NULL,
@@ -60,7 +88,7 @@ try {
         );
 
         CREATE TABLE IF NOT EXISTS transactions (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             product_id INT NOT NULL,
             buyer_id INT NOT NULL,
             seller_id INT NOT NULL,
@@ -76,7 +104,7 @@ try {
         );
 
         CREATE TABLE IF NOT EXISTS payments (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             transaction_id INT NOT NULL,
             buyer_id INT NOT NULL,
             payment_reference VARCHAR(100) NOT NULL,
@@ -90,7 +118,7 @@ try {
         );
 
         CREATE TABLE IF NOT EXISTS seller_payouts (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             transaction_id INT NOT NULL,
             seller_id INT NOT NULL,
             amount DECIMAL(10, 2) NOT NULL,
@@ -110,7 +138,7 @@ try {
         );
 
         CREATE TABLE IF NOT EXISTS comments (
-            id SERIAL PRIMARY KEY,
+            id $idPrimaryKey,
             user_id INT NOT NULL,
             product_id INT NOT NULL,
             comment TEXT NOT NULL,
@@ -119,11 +147,12 @@ try {
             FOREIGN KEY (product_id) REFERENCES products(id)
         );
         ";
-        $conn->exec($schema);
+    $conn->exec($schema);
 
-        $conn->exec("INSERT INTO categories (name) VALUES ('Electronics'), ('Vehicles & Spare Parts'), ('Home & Office'), ('Fashion & Clothing') ON CONFLICT DO NOTHING");
+    foreach (['Electronics', 'Vehicles & Spare Parts', 'Home & Office', 'Fashion & Clothing'] as $category) {
+        $stmt = $conn->prepare('INSERT INTO categories (name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = ?)');
+        $stmt->execute([$category, $category]);
     }
-
 } catch (PDOException $e) {
     die("Database Connection / Setup Failed: " . $e->getMessage());
 }
@@ -132,7 +161,9 @@ if (!is_dir(__DIR__ . '/uploads')) {
     mkdir(__DIR__ . '/uploads', 0777, true); 
 }
 
-function e($string) {
-    return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+if (!function_exists('e')) {
+    function e($string) {
+        return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+    }
 }
 ?>

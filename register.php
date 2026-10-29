@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 $error = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     } catch (PDOException $e) {
         // Catch duplicate key error code (23505) gracefully
-        if ($e->getCode() == '23505') {
+        if (in_array((string) $e->getCode(), ['23000', '23505'], true)) {
             $error = "This email is already registered. Please use a different email or log in.";
         } else {
             $error = "Registration failed: " . $e->getMessage();
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-require 'header.php';
+require_once 'header.php';
 ?>
 <div class="card-form">
     <h2 style="text-align:center; margin-bottom:20px;">Create Account</h2>

@@ -1,5 +1,5 @@
 <?php
-require 'db.php';
+require_once 'db.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -14,17 +14,15 @@ if (!$productId) {
 }
 
 try {
-    $conn->begin_transaction();
+    $conn->beginTransaction();
 
     $stmt = $conn->prepare(
         "SELECT id, seller_id, price, status
          FROM products
-         WHERE id = ?
-         FOR UPDATE"
+         WHERE id = ?"
     );
-    $stmt->bind_param("i", $productId);
-    $stmt->execute();
-    $product = $stmt->get_result()->fetch_assoc();
+    $stmt->execute([$productId]);
+    $product = $stmt->fetch();
 
     if (!$product) {
         throw new Exception('Product not found.');
@@ -44,10 +42,9 @@ try {
          AND payment_status IN ('unpaid', 'paid')
          LIMIT 1"
     );
-    $stmt->bind_param("i", $productId);
-    $stmt->execute();
+    $stmt->execute([$productId]);
 
-    if ($stmt->get_result()->num_rows > 0) {
+    if ($stmt->fetch()) {
         throw new Exception('This product already has a pending purchase.');
     }
 
@@ -60,18 +57,16 @@ try {
         (product_id, buyer_id, seller_id, total_amount, commission_amount, seller_payout, payment_status)
         VALUES (?, ?, ?, ?, ?, ?, 'unpaid')"
     );
-    $stmt->bind_param(
-        "iiiddd",
+    $stmt->execute([
         $productId,
         $buyerId,
         $product['seller_id'],
         $totalAmount,
         $commissionAmount,
         $sellerPayout
-    );
-    $stmt->execute();
+    ]);
 
-    $transactionId = $conn->insert_id;
+    $transactionId = $conn->lastInsertId();
 
     $paymentReference = 'PAY-' . $transactionId . '-' . bin2hex(random_bytes(5));
 
@@ -81,13 +76,12 @@ try {
         VALUES (?, ?, ?, 'manual', ?, 'ETB', 'pending')"
     );
    
-    $stmt->bind_param("iisd", $transactionId, $buyerId, $paymentReference, $totalAmount);
-    $stmt->execute();
+    $stmt->execute([$transactionId, $buyerId, $paymentReference, $totalAmount]);
 
     $conn->commit();
 
 } catch (Exception $e) {
-    $conn->rollback();
+    $conn->rollBack();
     exit('Purchase could not be created: ' . e($e->getMessage()));
 }
 ?>
